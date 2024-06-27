@@ -12,3 +12,80 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  BLOCKED
+}
+
+enum ProjectStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  projects       Project[]
+  tasksCreated   Task[]          @relation("TasksCreated")
+  tasksCompleted Task[]          @relation("TasksCompleted")
+  projectMembers ProjectMember[]
+  updatedAt      DateTime        @updatedAt
+  creationAt     DateTime        @default(now())
+}
+
+model Task {
+  id            String     @id @default(uuid())
+  title         String
+  description   String?
+  status        TaskStatus @default(TODO)
+  projectId     String
+  project       Project    @relation(fields: [projectId], references: [id])
+  createdById   String
+  createdBy     User       @relation("TasksCreated", fields: [createdById], references: [id])
+  completedById String?
+  completedBy   User?      @relation("TasksCompleted", fields: [completedById], references: [id])
+  updatedAt     DateTime   @updatedAt
+  creationAt    DateTime   @default(now())
+
+  @@unique([title, projectId])
+}
+
+model Project {
+  id             String          @id @default(uuid())
+  name           String
+  description    String?
+  status         ProjectStatus   @default(IN_PROGRESS)
+  userId         String
+  user           User            @relation(fields: [userId], references: [id])
+  tasks          Task[]
+  projectMembers ProjectMember[]
+  updatedAt      DateTime        @updatedAt
+  creationAt     DateTime        @default(now())
+
+  @@unique([name, userId])
+}
+
+model ProjectMember {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  projectId  String
+  project    Project  @relation(fields: [projectId], references: [id])
+  role       Role
+  updatedAt  DateTime @updatedAt
+  creationAt DateTime @default(now())
+
+  @@unique([userId, projectId])
+}
